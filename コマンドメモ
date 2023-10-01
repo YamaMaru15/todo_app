@@ -1,0 +1,17 @@
+設定ファイル(utf-8にする)
+sudo vim /etc/my.cnf
+
+起動
+sudo systemctl start mariadb
+
+状態確認
+sudo systemctl status mariadb
+
+mysqlへのログイン
+mysql -u root -p
+
+データベースの選択
+Use データベース
+
+utf-8になってるか確認
+SHOW VARIABLES LIKE "chara%";
