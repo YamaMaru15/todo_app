@@ -13,7 +13,7 @@ use TodoApp\Utils;
 
 $pdo = Database::getInstance();
 
-$todo = new Todo($pdo);
+    $todo = new Todo($pdo);
 // postで処理されたデータを処理する
 $todo->processPost();
 // データベースからデータの取得　$todoを表示するために配列を取得する
@@ -31,42 +31,32 @@ $todos = $todo->getAll();
     <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-    <main>
+    <!-- delete purge toggle処理については、非同期処理（fetch送信→画面の更新→DB更新）-->
+    <!-- add処理については、非同期処理（fetch送信→DB更新→画面のTodoの追加）-->
+
+    <!-- 今までは各要素(toggle delete purge)でトークンを送信していたが簡潔化 -->
+    <main data-token="<?= Utils::h($_SESSION['token']); ?>">
         <header>
             <h1>Todos</h1>
-            <form action="?action=purge" method="post">
-                <span class="purge">Purge</span>
-                <input type="hidden" name="token" value="<?= Utils::h($_SESSION['token']); ?>"/>
-            </form>
+            <span class="purge">Purge</span>
         </header>
         
-        <!--クエリ文字列でpostフォームを区別する-->
         <form action="?action=add" method="post">
             <input type="text" name="title" placeholder="Type new todo."/>
-            <input type="hidden" name="token" value="<?= Utils::h($_SESSION['token']); ?>"/>
         </form>
         
         <ul>
             <!--データの数だけforeach埋め込む-->
             <?php foreach ($todos as $todo): ?> 
-            <li>
-                <!--データベースのis_doneがtrueかfalseかでチェック未チェックの判定-->
-                <!--クエリ文字列でpostフォームを区別する-->
-                <form action="?action=toggle" method="post">
+                <!-- カスタムデータ属性を設定 もとinputのvalueで送信していたid> -->
+                <!-- idはフォームから送られたものかどうかを判定 -->
+                <li data-id="<?= Utils::h($todo->id); ?>">
+                    <!--データベースのis_doneがtrueかfalseかでチェック未チェックの判定-->
+                    <!--クエリ文字列でpostフォームを区別する-->
                     <input type="checkbox" <?= $todo->is_done ? 'checked' : ''; ?>>
-                    <input type="hidden" name="id" value="<?= Utils::h($todo->id); ?>"/>
-                    <input type="hidden" name="token" value="<?= Utils::h($_SESSION['token']); ?>"/>
-                </form>
-                <span class ="<?= $todo->is_done ? 'done' : ''; ?>">
-                    <?= Utils::h($todo->title); ?>
-                </span>
-                
-                <form action="?action=delete" method="post" class="delete-form">
+                    <span><?= Utils::h($todo->title); ?></span>
                     <span class="delete">✕</span>
-                    <input type="hidden" name="id" value="<?= Utils::h($todo->id); ?>"/>
-                    <input type="hidden" name="token" value="<?= Utils::h($_SESSION['token']); ?>"/>
-                </form>
-            </li>
+                </li>
             <?php endforeach; ?>
         </ul>
     </main>

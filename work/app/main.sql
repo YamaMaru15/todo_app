@@ -1,8 +1,8 @@
 -- データベース作成
-CREATE DATABASE todo_list;
+CREATE DATABASE todo_app;
 
 -- データベース移動
-USE todo_list;
+USE todo_app;
 
 CREATE TABLE todos (
  id INT NOT NULL AUTO_INCREMENT,

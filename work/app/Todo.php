@@ -10,7 +10,7 @@ class Todo {
         Token::create();
     }
     
-    // postで処理されたデータを処理する
+    // postで処理されたデータを処理するトークンの検証
     public function processPost(){
         // サーバー変数を調べてリクエストメソッドが、POSTだったらデータを追加
         if($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -20,10 +20,16 @@ class Todo {
             
             switch($action) {
                 case 'add':
-                    $this->add();
+                    $id = $this->add();
+                    // json形式の宣言、出力(キー付きの配列をjson形式に変換)
+                    header('Content-Type: application/json');
+                    echo json_encode(['id' => $id]);
                     break;
                 case 'toggle':
-                    $this->toggle();
+                    //todoのチェック状態の整合性を保つ処理で使用
+                    $isDone = $this->toggle();
+                    header('Content-Type: application/json');
+                    echo json_encode(['is_done' => $isDone]);
                     break;
                 case 'delete':
                     $this->delete();
@@ -34,8 +40,8 @@ class Todo {
                 default:
                     exit;
             }
-            //再読み込みで二重投稿を防ぐ
-            header('Location: ' . SITE_URL);
+            //再読み込みで二重投稿を防ぐ→カスタムデータ属性とJsで処理。不要
+            // header('Location: ' . SITE_URL);
             exit;
         }
     }
@@ -52,6 +58,8 @@ class Todo {
         // 値を紐づける。titleをプレースホルダ―に文字列として割り当て
         $stmt->bindValue('title', $title, \PDO::PARAM_STR);
         $stmt->execute();
+        //直前に挿入されたレコードのidを取得
+        return (int)$this->pdo->lastInsertId();
     }
     
     // true false(チェック未チェック)の判定 
@@ -61,10 +69,25 @@ class Todo {
             return;
         }
         
+        // データの整合性チェック 別ウィンド等で既にtodoが削除されていた場合アラートを出す
+        $stmt = $this->pdo->prepare("SELECT * FROM todos WHERE id = :id");
+        $stmt->bindValue('id', $id, \PDO::PARAM_INT);
+        $stmt->execute();
+        $todo = $stmt->fetch();
+        if (empty($todo)) {
+            header('HTTP', true , 404);
+            exit;
+        }
+
         //is_doneの否定を代入し、true falseを切り替える
         $stmt = $this->pdo->prepare("UPDATE todos SET is_done = NOT is_done WHERE id = :id");
         $stmt->bindValue('id', $id, \PDO::PARAM_INT);
         $stmt->execute();
+
+        //todoのチェック状態の整合性を保つ処理
+        //最新のis_done状態を取得。=todoのis_doneの逆の状態
+        //JSはboolean値はtrue,falseで管理されるので、キャストする。DBは01で管理
+        return (boolean)!$todo->is_done;
     }
     
     // delete
@@ -81,7 +104,7 @@ class Todo {
     
     //チェック済みtodoの全消し
     private function purge() {
-        // is_done=1　チェック済みのtodoのみ削除する
+        // is_done=1 チェック済みのtodoのみ削除する
         $this->pdo->query("DELETE FROM todos WHERE is_done = 1");
     }
 
